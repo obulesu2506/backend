@@ -10,9 +10,9 @@ env:
 jobs:
   test:
     env:
-      MONGODB_CLUSTER_ADDRESS: ghaenv.829lcsa.mongodb.net
-      MONGODB_USERNAME: obulesucloud_db_user
-      MONGODB_PASSWORD: JSwepfGJKo4gSU01
+      MONGODB_CLUSTER_ADDRESS: 
+      MONGODB_USERNAME: 
+      MONGODB_PASSWORD: 
       PORT: 
     runs-on: ubuntu-latest
     steps:

@@ -1,78 +1,61 @@
-module "jenkins" {
-    source = "terraform-aws-modules/ec2-instance/aws"
+resource "aws_instance" "jenkins" {
+  ami                    = data.aws_ami.ami_info.id
+  instance_type          = "t3.micro"
+  vpc_security_group_ids = ["sg-04b43b659458be54a"]
+  subnet_id              = "subnet-0fa3bb83ac9337d9e"
+  user_data              = file("jenkins.sh")
 
-    name = "jenkins"
-    ami = data.aws_ami.ami_info.id
-    vpc_security_group_ids = ["sg-04b43b659458be54a"]
-    subnet_id = "subnet-0db6b50985ae47a90"
-    instance_type = "t3.small"
-
-    user_data = file("jenkins.sh")
-
-    tags = {
-        Name = "jenkins"
+  root_block_device {
+    volume_size = 50    # Set root volume size to 50GB
+    volume_type = "gp3" # Use gp3 for better performance (optional)
+  }
+  tags = merge(
+    var.common_tags,
+    {
+      Name = "Jenkins"
     }
-
-    #Define the root volume size and type
-    root_block_device = [
-        {
-            volume_size = 50 #extending root volume size from 20 to 50 GB
-            volume_type = "gp3" #general purpose ssd
-            delete_on_termination = true #Automatically delete the volume when instance is terminated
-    }
-    ]
+  )
 }
 
-module "jenkins-agent" {
+resource "aws_instance" "jenkins-agent" {
+  ami                    = data.aws_ami.ami_info.id
+  instance_type          = "t3.micro"
+  vpc_security_group_ids = ["sg-04b43b659458be54a"]
+  subnet_id              = "subnet-0fa3bb83ac9337d9e"
+  user_data              = file("jenkins-agent.sh")
 
-    source = "terraform-aws-modules/ec2-instance/aws"
-
-    name = "jenkins-agent"
-
-    ami = data.aws_ami.ami_info.id
-    vpc_security_group_ids = ["sg-04b43b659458be54a"]
-    subnet_id = "subnet-0db6b50985ae47a90"
-    instance_type = "t3.small"
-
-    user_data = file("jenkins-agent.sh")
-    tags = {
-        Name = "jenkins-agent"
+  root_block_device {
+    volume_size = 50    # Set root volume size to 50GB
+    volume_type = "gp3" # Use gp3 for better performance (optional)
+  }
+  tags = merge(
+    var.common_tags,
+    {
+      Name = "Jenkins-agent"
     }
-
-    root_block_device = [
-        {
-            volume_size = 50 #extending root volume size from 20 to 50 GB
-            volume_type = "gp3" #General Purpose SSD 
-            delete_on_termination = true # Automatically delete the root volume when the instance is terminated
-        }
-    ]
-
+  )
 }
 
-module "records" {
-    source = "terraform-aws-modules/route53/aws//modules/records"
-    version = "~>2.0"
+resource "aws_route53_record" "jenkins" {
+  zone_id = var.zone_id
+  name    = "jenkins"
+  type    = "A"
+  ttl     = 1
+  records = [aws_instance.jenkins.public_ip]
+}
 
-    zone_name = var.zone_name
-
-    records = [
-        {
-            name = "jenkins"
-            type = "A"
-            ttl = 1
-            records = [
-                module.jenkins.public_ip
-            ]
-            allow_overwrite = true
-        },
-        {
-            name = "jenkins-agent"
-            type = "A"
-            ttl = 1
-            records = [
-                module.jenkins-agent.private_ip
-            ]
-            allow_overwrite = true
-        }
-    ]
+resource "aws_route53_record" "jenkins_agent" {
+  zone_id = var.zone_id
+  name    = "jenkins-agent"
+  type    = "A"
+  ttl     = 1
+  records = [aws_instance.jenkins-agent.private_ip]
+}
+resource "aws_route53_record" "jenkins_private" {
+  //count   = aws_instance.jenkins.private_ip != "" ? 1 : 0
+  zone_id = var.zone_id
+  name    = "jenkins-private"
+  type    = "A"
+  ttl     = 1
+  records = [aws_instance.jenkins.private_ip]
 }

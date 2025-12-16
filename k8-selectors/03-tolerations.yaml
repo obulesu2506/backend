@@ -1,0 +1,14 @@
+#This case used for allow the Pod to run if there is no tolerations specifically
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tolerations1
+  labels:
+    purpose: "tolerations-demo"
+spec:
+  nodeSelector:
+    topology.kubernetes.io/zone: us-east-1a
+  containers:
+  - name: nginx
+    image: nginx
+  
